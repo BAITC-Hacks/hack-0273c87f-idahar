@@ -309,4 +309,4 @@ createServer(async (req, res) => {
     const message = error.name === 'AbortError' ? 'OpenAI отвечает слишком долго.' : error.message || 'Ошибка сервера.';
     return send(res, message.startsWith('OpenAI') ? 502 : 400, { error: message });
   }
-}).listen(port, host, () => console.log(`HackAlem practice: http://${host}:${port} (${process.env.OPENAI_API_KEY ? 'OpenAI' : 'демо вопросы'})`));
+}).listen(port, host, () => console.log(`SanaQuest: http://${host}:${port} (${process.env.OPENAI_API_KEY ? 'OpenAI' : 'демо вопросы'})`));

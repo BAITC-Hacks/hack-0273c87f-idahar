@@ -122,7 +122,7 @@ function render() {
     .sort((a, b) => b.quality - a.quality);
   const rankById = new Map([...state.tasks].sort((a, b) => b.quality - a.quality).map((t, index) => [String(t.id), index + 1]));
   const experience = teamXP(teamId);
-  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">HackAlem AI · практические задачи</div><h1>${business ? 'Задачи для студенческих команд' : 'Выберите задачу для команды'}</h1><p>${business ? 'Уточняйте карточки, сравнивайте предложения и подтверждайте результат работы.' : 'Каталог открыт всем командам. Решение о сотрудничестве принимает заказчик.'}</p></div>
+  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">SanaQuest · практические задачи</div><h1>${business ? 'Задачи для студенческих команд' : 'Выберите задачу для команды'}</h1><p>${business ? 'Уточняйте карточки, сравнивайте предложения и подтверждайте результат работы.' : 'Каталог открыт всем командам. Решение о сотрудничестве принимает заказчик.'}</p></div>
     ${business ? '<div class="welcome-actions"><button class="secondary" id="reset-demo">Сбросить демо</button><button class="primary" id="new-task">＋ Создать задачу</button></div>' : `<select class="filter" id="team-select" aria-label="Выбрать команду">${state.teams.map(t => `<option value="${html(t.id)}" ${t.id === teamId ? 'selected' : ''}>${html(t.name)} · ${t.members} ${plural(t.members, 'участник', 'участника', 'участников')}</option>`).join('')}</select>`}</div>
     <section class="hero"><div><h2>${business ? 'Рейтинг отражает готовность задачи' : 'Предлагайте решение самостоятельно'}</h2><p>${business ? 'Баллы начисляются за сведения, которые вы проверили и подтвердили. Чем полнее карточка, тем выше она в каталоге.' : 'Откройте любую задачу, отправьте идею и план. После выбора команды можно показать этап работы на подтверждение.'}</p></div><div class="hero-stat"><div class="stat"><b>${state.tasks.length}</b><span>${plural(state.tasks.length, 'задача', 'задачи', 'задач')}</span></div><div class="stat"><b>${state.proposals.length}</b><span>${plural(state.proposals.length, 'предложение', 'предложения', 'предложений')}</span></div><div class="stat"><b>${business ? state.drafts.length : experience}</b><span>${business ? plural(state.drafts.length, 'черновик', 'черновика', 'черновиков') : 'XP команды'}</span></div></div></section>
     ${business && tab === 'catalog' ? businessGamePanel() : ''}
@@ -197,7 +197,7 @@ function renderDrafts() {
   document.querySelectorAll('[data-draft]').forEach(b => b.onclick = () => openForm(state.drafts.find(d => d.id === b.dataset.draft)));
 }
 function renderAbout() {
-  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">Сквозной сценарий</div><h1>Как устроен «Старт»</h1><p>От слабого описания до подтверждённого этапа работы.</p></div></div><div class="cards">${[
+  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">Сквозной сценарий</div><h1>Как устроен SanaQuest</h1><p>От слабого описания до подтверждённого этапа работы.</p></div></div><div class="cards">${[
     ['01', 'Заказчик создаёт черновик', 'Вводит свободное описание и сохраняет его.'],
     ['02', 'Система задаёт 3 вопроса', 'Ответы попадают в редактируемую карточку.'],
     ['03', 'Рейтинг меняет позицию', 'Подтверждённая задача публикуется в общем каталоге.'],
