@@ -200,8 +200,8 @@ createServer(async (req, res) => {
       const input = await bodyJson(req);
       const draft = await mutate(() => {
         const existing = state.drafts.find(d => d.id === input.id);
-        const value = { id: existing?.id || randomUUID(), title: required(input.title, 'Название задачи', 200),
-          category: String(input.category || 'Исследование').slice(0, 80), description: required(input.description, 'Контекст и потребность'), rubric: input.rubric || {} };
+        const value = { id: existing?.id || randomUUID(), title: String(input.title || '').trim().slice(0, 200),
+          category: String(input.category || 'Исследование').slice(0, 80), description: required(input.description, 'Краткое описание', 5000), rubric: input.rubric || {} };
         if (existing) Object.assign(existing, value); else state.drafts.push(value);
         return value;
       });
