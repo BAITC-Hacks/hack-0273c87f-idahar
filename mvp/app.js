@@ -1,4 +1,5 @@
 import { evaluateField, evaluateRubric, score } from './quality.mjs';
+import { canonicalCategory, currentLanguage, setLanguage, startLocalization, translate } from './i18n.js';
 
 const rubricFields = [
   ['context', 'Контекст и потребность', 20, 'Что происходит сейчас и что нужно изменить?'],
@@ -31,6 +32,10 @@ function applyTheme() {
 }
 applyTheme();
 document.querySelector('#theme-toggle').onclick = () => { theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('hackalem-theme', theme); applyTheme(); };
+const languageSelect = document.querySelector('#language-select');
+languageSelect.value = currentLanguage();
+languageSelect.onchange = () => setLanguage(languageSelect.value);
+startLocalization();
 
 function html(value = '') { return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 function plural(count, one, few, many) { const n = Math.abs(Number(count)) % 100; const last = n % 10; return n > 10 && n < 20 ? many : last === 1 ? one : last >= 2 && last <= 4 ? few : many; }
@@ -127,7 +132,7 @@ function render() {
     <div class="cards" id="cards">${list.length ? list.map(t => taskCard(t, rankById.get(String(t.id)))).join('') : '<div class="empty">Задачи не найдены. Измените фильтр или поиск.</div>'}</div>`;
   document.querySelector('#new-task')?.addEventListener('click', () => openForm());
   document.querySelector('#reset-demo')?.addEventListener('click', () => {
-    if (!window.confirm('Сбросить задачи, черновики и предложения к демонстрационным данным? Текущее состояние сохранится в data/backups.')) return;
+    if (!window.confirm(translate('Сбросить задачи, черновики и предложения к демонстрационным данным? Текущее состояние сохранится в data/backups.'))) return;
     run(async () => { await api('/api/reset-demo', 'POST', { confirm: 'RESET_DEMO' }); filter = 'Все задачи'; levelFilter = 'Все уровни'; query = ''; tab = 'catalog'; }, 'Демонстрационные данные восстановлены.');
   });
   document.querySelector('#team-select')?.addEventListener('change', e => { teamId = e.target.value; localStorage.setItem('hackalem-team', teamId); render(); });
@@ -187,7 +192,7 @@ function taskCard(t, rank) {
   return `<article class="card"><div class="card-top"><span class="tag">${html(t.category)}</span><span class="match">№${rank} в каталоге</span></div><h3>${html(t.title)}</h3><p>${html(t.desc)}</p><div class="readiness-card"><div class="readiness-card-head"><span class="readiness-level">${levelIcon(t.quality)} ${level(t.quality)}</span><b>${t.quality}/100</b></div><div class="meter"><span style="width:${t.quality}%"></span></div><div class="small">${next ? `Ещё ${next.score - t.quality} баллов до уровня «${next.name}»${missing.length ? ` · ${html(missing[0][1])} +${missing[0][2]}` : ''}` : 'Приоритетная задача · верхний уровень'}</div>${t.lastChange ? `<div class="small change-note">Последнее изменение: ${changeText(t.lastChange)}</div>` : ''}</div><div class="chips">${(t.skills || []).map(s => `<span class="chip">${html(s)}</span>`).join('')}</div><div class="card-foot"><div class="company"><div class="company-logo">${html(t.logo || 'З')}</div><div>${html(t.company)}<div class="small">${html(t.due)} · ${html(t.status || 'Открыта')}</div>${selected.length ? `<div class="small">Выбраны: ${html(selected.join(', '))}</div>` : ''}</div></div><button class="text-btn" data-task="${html(t.id)}">Подробнее →</button></div></article>`;
 }
 function renderDrafts() {
-  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">Работа заказчика</div><h1>Черновики задач</h1><p>Дополните сведения и подтвердите карточку перед публикацией.</p></div><button class="primary" id="new-task">＋ Новый черновик</button></div><div class="cards">${state.drafts.map(d => `<article class="card"><span class="tag">${html(d.category)}</span><h3>${html(d.title || 'Черновик без названия')}</h3><p>${html(d.description)}</p><button class="text-btn" data-draft="${html(d.id)}">Продолжить →</button></article>`).join('') || '<div class="empty">Черновиков пока нет.</div>'}</div>`;
+  app.innerHTML = `<div class="welcome"><div><div class="eyebrow">Работа заказчика</div><h1>Черновики задач</h1><p>Дополните сведения и подтвердите карточку перед публикацией.</p></div><button class="primary" id="new-task">＋ Новый черновик</button></div><div class="cards">${state.drafts.map(d => `<article class="card"><span class="tag">${html(d.category)}</span><h3 class="${d.title ? 'user-copy' : ''}">${html(d.title || 'Черновик без названия')}</h3><p class="user-copy">${html(d.description)}</p><button class="text-btn" data-draft="${html(d.id)}">Продолжить →</button></article>`).join('') || '<div class="empty">Черновиков пока нет.</div>'}</div>`;
   document.querySelector('#new-task').onclick = () => openForm();
   document.querySelectorAll('[data-draft]').forEach(b => b.onclick = () => openForm(state.drafts.find(d => d.id === b.dataset.draft)));
 }
@@ -208,8 +213,8 @@ function openTask(id) {
   const next = nextLevel(t.quality);
   const missing = missingFields(t.rubric);
   const rank = [...state.tasks].sort((a, b) => b.quality - a.quality).findIndex(item => String(item.id) === String(t.id)) + 1;
-  showModal(`<div class="modal-head"><div><span class="tag">${html(t.category)}</span><h2 style="margin-top:12px">${html(t.title)}</h2><p>${html(t.company)} · ${html(t.due)}</p></div><button class="close" data-close>×</button></div>
-    <p>${html(t.desc)}</p><div class="chips">${(t.skills || []).map(s => `<span class="chip">${html(s)}</span>`).join('')}</div><div class="scorebox"><div class="score-head"><span>${levelIcon(t.quality)} ${level(t.quality)} · №${rank} в каталоге</span><b>${t.quality}/100</b></div><div class="meter"><span style="width:${t.quality}%"></span></div><div class="suggestion" style="margin-bottom:9px">${next ? `До уровня «${next.name}» осталось ${next.score - t.quality} баллов.` : 'Приоритетный уровень достигнут.'}${missing.length ? ` Следующие поля: ${missing.slice(0, 2).map(([, label, points]) => `${html(label)} (+${points})`).join(', ')}.` : ''}</div>${t.lastChange ? `<div class="small change-note">Последнее изменение: ${changeText(t.lastChange)}</div>` : ''}${rubricFields.map(([key, label, points]) => `<div class="small">${evaluateField(key, t.rubric?.[key]).ok ? '✓' : '○'} ${label} — ${evaluateField(key, t.rubric?.[key]).ok ? points : 0}/${points}</div>`).join('')}</div>
+  showModal(`<div class="modal-head"><div><span class="tag">${html(t.category)}</span><h2 class="user-copy" style="margin-top:12px">${html(t.title)}</h2><p class="user-copy">${html(t.company)} · ${html(t.due)}</p></div><button class="close" data-close>×</button></div>
+    <p class="user-copy">${html(t.desc)}</p><div class="chips">${(t.skills || []).map(s => `<span class="chip user-copy">${html(s)}</span>`).join('')}</div><div class="scorebox"><div class="score-head"><span>${levelIcon(t.quality)} ${level(t.quality)} · №${rank} в каталоге</span><b>${t.quality}/100</b></div><div class="meter"><span style="width:${t.quality}%"></span></div><div class="suggestion" style="margin-bottom:9px">${next ? `До уровня «${next.name}» осталось ${next.score - t.quality} баллов.` : 'Приоритетный уровень достигнут.'}${missing.length ? ` Следующие поля: ${missing.slice(0, 2).map(([, label, points]) => `${html(label)} (+${points})`).join(', ')}.` : ''}</div>${t.lastChange ? `<div class="small change-note">Последнее изменение: ${changeText(t.lastChange)}</div>` : ''}${rubricFields.map(([key, label, points]) => `<div class="small">${evaluateField(key, t.rubric?.[key]).ok ? '✓' : '○'} ${label} — ${evaluateField(key, t.rubric?.[key]).ok ? points : 0}/${points}</div>`).join('')}</div>
     ${mine ? `<div class="scorebox"><b>Предложение команды:</b> ${mine.completedAt ? 'работа завершена' : mine.status === 'selected' ? 'выбрано' : mine.status === 'rejected' ? 'отклонено' : 'ожидает решения'}<div class="small">Опыт за эту работу: ${proposalXP(mine)} XP</div>${(mine.stages || []).map((stage, i) => `<div class="small">Этап ${i + 1}: ${html(stage.description)} · ${stage.status === 'confirmed' ? '+10 XP подтверждено' : 'ожидает подтверждения'}</div>`).join('')}</div>` : ''}
     <div class="small">${proposalsFor(t.id).length} ${plural(proposalsFor(t.id).length, 'предложение', 'предложения', 'предложений')} · задача доступна всем командам</div><div class="modal-actions"><button class="secondary" data-close>Закрыть</button>${role === 'business' ? `<button class="secondary" id="edit-task">Улучшить карточку</button><button class="primary" id="view-proposals">Предложения</button>` : mine?.status === 'selected' && !mine.completedAt ? `<button class="primary" id="submit-stage" ${(mine.stages || []).some(stage => stage.status === 'pending') || (mine.stages || []).length >= 3 ? 'disabled' : ''}>${(mine.stages || []).some(stage => stage.status === 'pending') ? 'Этап ожидает подтверждения' : (mine.stages || []).length >= 3 ? 'Три этапа выполнены' : 'Показать следующий этап'}</button>` : `<button class="primary" id="reply" ${mine ? 'disabled' : ''}>${mine ? mine.completedAt ? 'Работа завершена' : 'Предложение отправлено' : 'Подать предложение'}</button>`}</div>`);
   document.querySelector('#edit-task')?.addEventListener('click', () => openForm(t));
@@ -219,7 +224,7 @@ function openTask(id) {
 }
 
 function formValues() {
-  return { title: document.querySelector('#f-title').value.trim(), category: document.querySelector('#f-category').value,
+  return { title: document.querySelector('#f-title').value.trim(), category: canonicalCategory(document.querySelector('#f-category').value),
     due: document.querySelector('#f-due').value.trim(), skills: document.querySelector('#f-skills').value.split(',').map(x => x.trim()).filter(Boolean),
     rubric: Object.fromEntries(rubricFields.map(([key]) => [key, document.querySelector(`#f-${key}`).value.trim()])) };
 }
@@ -232,7 +237,7 @@ function captureLocalForm() { return { ...formValues(), free: document.querySele
 function restoreLocalForm(value) {
   document.querySelector('#f-free').value = value.free || '';
   document.querySelector('#f-title').value = value.title || '';
-  document.querySelector('#f-category').value = value.category || 'Веб-разработка';
+  document.querySelector('#f-category').value = canonicalCategory(value.category || 'Веб-разработка');
   document.querySelector('#f-due').value = value.due || '';
   document.querySelector('#f-skills').value = Array.isArray(value.skills) ? value.skills.join(', ') : '';
   rubricFields.forEach(([key]) => { document.querySelector(`#f-${key}`).value = value.rubric?.[key] || ''; });
@@ -294,7 +299,7 @@ function openForm(item = null) {
     const errorBox = document.querySelector('#ai-draft-error'); errorBox.hidden = true;
     try {
       const data = await api('/api/ai-draft', 'POST', { description: document.querySelector('#f-free').value,
-        title: document.querySelector('#f-title').value, rubric: formValues().rubric });
+        title: document.querySelector('#f-title').value, rubric: formValues().rubric, language: currentLanguage() });
       const candidates = [
         ...(data.title ? [{ key: 'title', label: 'Название задачи', value: data.title }] : []),
         ...rubricFields.filter(([key]) => data.rubric[key]).map(([key, label]) => ({ key, label, value: data.rubric[key] }))
@@ -323,7 +328,7 @@ function openForm(item = null) {
   document.querySelector('#ask-questions').onclick = async () => {
     const button = document.querySelector('#ask-questions'); button.disabled = true;
     try {
-      const data = await api('/api/questions', 'POST', formValues());
+      const data = await api('/api/questions', 'POST', { ...formValues(), language: currentLanguage() });
       document.querySelector('#question-list').innerHTML = `<div class="suggestion" style="margin-top:12px">${data.source === 'demo' ? 'Демо вопросы по незаполненным полям' : 'Вопросы OpenAI'}. Ответы можно проверить до публикации.</div>${data.questions.map((q, i) => `<div class="field"><label for="answer-${i}">${i + 1}. ${html(q.question)}</label><textarea id="answer-${i}"></textarea></div>`).join('')}<button class="secondary" id="apply-answers">Добавить ответы в карточку</button>`;
       document.querySelector('#apply-answers').onclick = () => {
         data.questions.forEach((q, i) => { const answer = document.querySelector(`#answer-${i}`).value.trim(); const field = document.querySelector(`#f-${q.field}`); if (answer && field) field.value = [field.value.trim(), answer].filter(Boolean).join('\n'); });

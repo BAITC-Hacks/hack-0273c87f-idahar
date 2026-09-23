@@ -10,7 +10,9 @@ const prompts = {
   contact: 'Укажите человека или канал для обратной связи.'
 };
 
-const filler = new Set(['не', 'знаю', 'пока', 'нет', 'данных', 'позже', 'уточнить', 'уточняется', 'будет', 'тест', 'тестовый', 'тестовая', 'задача', 'н', 'д', 'tbd', 'todo', 'lorem', 'ipsum']);
+const filler = new Set(['не', 'знаю', 'пока', 'нет', 'данных', 'позже', 'уточнить', 'уточняется', 'будет', 'тест', 'тестовый', 'тестовая', 'задача', 'н', 'д', 'tbd', 'todo', 'lorem', 'ipsum',
+  'кейін', 'жоқ', 'белгісіз', 'анықтаймыз', 'әзірше', 'мәлімет', 'білмеймін',
+  'i', 'do', 'not', 'don', 't', 'know', 'no', 'data', 'yet', 'later', 'unknown', 'none', 'test', 'example', 'placeholder', 'to', 'be', 'determined']);
 
 export function evaluateField(key, value) {
   const text = String(value ?? '').trim();
